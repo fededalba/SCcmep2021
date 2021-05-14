@@ -50,3 +50,5 @@ if __name__ == '__main__':
         label_encoders[col] = le
 
 
+##OK ho creato un branch, adesso lavoro qui. faccio i decision trees per i due dataset e poi imparo supportvector machine.
+#ah ricordati di non riutilizzare la funzione report.
