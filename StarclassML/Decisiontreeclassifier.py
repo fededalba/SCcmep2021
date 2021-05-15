@@ -50,5 +50,20 @@ if __name__ == '__main__':
         label_encoders[col] = le
 
 
-##OK ho creato un branch, adesso lavoro qui. faccio i decision trees per i due dataset e poi imparo supportvector machine.
-#ah ricordati di non riutilizzare la funzione report.
+    ##Splitto i dati in training e test set
+    from sklearn.model_selection import train_test_split
+    attributes = [col for col in df.columns if col != 'Type']
+    X = df[attributes].values
+    y = df['Type']
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=1, stratify=y)
+
+
+    ##Esploro lo spazio dei parametri del mio albero per capire quale è quello più ideale
+    from sklearn.tree import DecisionTreeClassifier
+    from sklearn.model_selection import RandomizedSearchCV
+    from sklearn.model_selection import GridSearchCV
+    from sklearn.metrics import precision_score
+    from sklearn.metrics import recall_score
+
+
+
