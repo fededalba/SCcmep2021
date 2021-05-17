@@ -24,7 +24,7 @@ import os
 from sklearn.metrics import confusion_matrix
 from sklearn.metrics import accuracy_score, f1_score, classification_report
 from sklearn.metrics import roc_curve, auc, roc_auc_score
-
+import logging
 
 
 def into_a_string(x):
@@ -44,27 +44,71 @@ def report(results, n_top=3):
             print("Parameters: {0}".format(results['params'][candidate]))
             print("")
 
+
+def bubble_sort(x,y,v):
+    '''LA funzione mi riordina l'array y ogni volta che viene ordinato l'array x' '''
+    def swap(i, j):
+        x[i], x[j] = x[j], x[i]
+        y[i], y[j] = y[j], y[i]
+        v[i], v[j] = v[j], v[i]
+    logging.debug('Inizio dello scambio')
+    n = len(x)
+    swapped = True
+    z = -1
+    while swapped:
+        swapped = False
+        z = z + 1
+        for i in range(1, n-z):
+            if x[i - 1] > x[i]:
+                swap(i - 1, i)
+                swapped = True
+
+    return (x,y,v)
+    
+
+
+
 def overfitting_function(X_tr, y_tr, X_te, y_te):
     '''Creo un albero per ogni possibile valore dei parametri, stampo il numero di nodi
         per tutti i punti con lo stesso numero di nodi faccio una media
         del training error e test error'''
-
+    logging.basicConfig(filename='decisiontree.log', level=logging.DEBUG)
     nodi = []
     training_errors = []
     test_errors = []
-
+    #prova a rifarlo senza fare un ciclo su tutto lo spazio.
     for depth in range(2,20):
-        for min_sample in range(2,100):
-            for min_leaf in range(1,100):
+        for min_sample in range(2,10,2):
+            for min_leaf in range(1,10,2):
+                logging.debug('Esecuzione ciclo for')
                 clf = DecisionTreeClassifier(criterion='gini', max_depth=depth, min_samples_split=min_sample, min_samples_leaf=min_leaf)
                 clf = clf.fit(X_train, y_train)
                 y_pred = clf.predict(X_test)
                 y_pred_tr = clf.predict(X_train)
-                tree = clf.tree_
-                nodi.append(tree.node_count)
+                albero = clf.tree_
+                nodi.append(albero.node_count)
                 training_errors.append(1 - accuracy_score(y_train, y_pred_tr))
                 test_errors.append(1 - accuracy_score(y_test, y_pred))
-
+    logging.debug("Finita l esplorazione nello spazio dei parametri")
+    nodi, training_errors, test_errors = bubble_sort(nodi, training_errors, test_errors)
+    sepindex = [0]
+    for i in range(1,len(nodi)):
+        if nodi[i]>nodi[i-1]:
+            sepindex.append(i-1)
+    logging.debug('Trovati gli indici che separano larray nodi')
+    training_errors = np.array(training_errors)
+    test_errors = np.array(test_errors)
+    average_training_errors = []     
+    average_test_errors = []
+    sepindex = sepindex + [len(nodi)-1]
+    print(sepindex)
+    for i in range(0,len(sepindex)-1):
+        average_training_errors.append(np.mean(training_errors[sepindex[i]:sepindex[i+1]]))
+        average_test_errors.append(np.mean(test_errors[sepindex[i]:sepindex[i+1]]))
+        #qui potrei buttarci un test per controllare che la lunghezza degli array sia uguale
+    nodi = set(nodi)
+    return(list(nodi), average_training_errors, average_test_errors)
+    '''
     num_nodi = []
     train_averages = []
     test_averages = []
@@ -74,7 +118,7 @@ def overfitting_function(X_tr, y_tr, X_te, y_te):
         for j in range(0,len(nodi)-1):
             if nodi[j] == element:
                 train_averages.append(training_errors[j])
-                test_averages.append(test_errors[j])
+                test_averages.append(test_errors[j])'''
     
 
 
@@ -103,7 +147,7 @@ if __name__ == '__main__':
     attributes = [col for col in df.columns if col != 'Type']
     X = df[attributes].values
     y = df['Type']
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=1, stratify=y)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.4, random_state=1, stratify=y)
 
 
     ##Esploro lo spazio dei parametri del mio albero per capire quale è quello più ideale
@@ -124,14 +168,14 @@ if __name__ == '__main__':
     print(f'Il numero di nodi è {clf_tree.node_count}')
 
     ##Stampiamo l'albero
-    os.environ['PATH'] += os.pathsep + 'C:\\Users\\Uno\\anaconda3\\Library\\bin\\graphviz'
+    '''os.environ['PATH'] += os.pathsep + 'C:\\Users\\Uno\\anaconda3\\Library\\bin\\graphviz'
     dot_data = tree.export_graphviz(clf, out_file=None,  
                                 feature_names=attributes, 
                                 class_names=clf.classes_,  
                                 filled=True, rounded=True,  
                                 special_characters=True)  
     graph = pydotplus.graph_from_dot_data(dot_data)  
-    Image(graph.create_png())
+    Image(graph.create_png())'''
 
 
     ##Analizziamo le performance dell'albero.
@@ -147,6 +191,11 @@ if __name__ == '__main__':
 
 
     ##Analizziamo l'overfitting
+    nodi, trainingerror, testerror = overfitting_function(X_train, y_train, X_test, y_test)
+    plt.figure(1)
+    plt.plot(nodi, trainingerror, '.')
+    plt.plot(nodi, testerror, '.')
+    plt.show()
 
 
 
