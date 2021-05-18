@@ -5,18 +5,14 @@ Created on Fri May 14 14:53:44 2021
 @author: Uno
 """
 
-import math
 import numpy as np
 import pandas as pd
-import scipy.stats as stats
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import LabelEncoder
+from sklearn.preprocessing import LabelBinarizer
 from sklearn.model_selection import train_test_split
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.model_selection import RandomizedSearchCV
-from sklearn.model_selection import GridSearchCV
-from sklearn.metrics import precision_score
-from sklearn.metrics import recall_score
 import pydotplus
 from sklearn import tree
 from IPython.display import Image
@@ -24,8 +20,9 @@ import os
 from sklearn.metrics import confusion_matrix
 from sklearn.metrics import accuracy_score, f1_score, classification_report
 from sklearn.metrics import roc_curve, auc, roc_auc_score
+from sklearn.model_selection import cross_val_score
 import logging
-
+#vedi se togliere o no logging
 
 def into_a_string(x):
     ''' Prendo una lista di valori e trasformo ogni elemento in stringa'''
@@ -126,6 +123,9 @@ def overfitting_function(X_tr, y_tr, X_te, y_te):
 if __name__ == '__main__':
 
     df = pd.read_csv('C:\\Users\\Uno\\Documents\\Uni\\Computing methods\\Esame\\Stars.csv')
+    del df['A_M']   #Se non commentata, siamo nel dataset 2
+    del df['R']
+    del df['L']
 
     ##Trasformo la variabile target in una stringa.
     labels = df['Type'].values
@@ -162,7 +162,7 @@ if __name__ == '__main__':
     report(random_search.cv_results_, n_top=3)
 
     ##seleziono l'albero migliore e stampo il numero di nodi.
-    clf = random_search.best_estimator_
+    clf = DecisionTreeClassifier(criterion='gini', max_depth=17, min_samples_split=5, min_samples_leaf=20)
     clf = clf.fit(X_train, y_train)
     clf_tree = clf.tree_
     print(f'Il numero di nodi è {clf_tree.node_count}')
@@ -191,20 +191,43 @@ if __name__ == '__main__':
 
 
     ##Analizziamo l'overfitting
-    nodi, trainingerror, testerror = overfitting_function(X_train, y_train, X_test, y_test)
+    '''nodi, trainingerror, testerror = overfitting_function(X_train, y_train, X_test, y_test)
     plt.figure(1)
     plt.plot(nodi, trainingerror, '.')
     plt.plot(nodi, testerror, '.')
-    plt.show()
-
-
+    plt.show()'''
 
     ##Vediamo quali sono gli attributi che più impattano nella classificazione
     for col, imp in zip(attributes, clf.feature_importances_):
         print(col, imp)
 
+    #crossvalidation
+    scores = cross_val_score(clf, X, y, cv=5)
+    print('Cross validation Accuracy: %0.4f (+/- %0.2f)' % (scores.mean(), scores.std() * 2))
 
+    ##Vediamo com'è fatta la ROC CURVE
+    lb = LabelBinarizer() #dobbiamo usare questo dal momento che abbiamo un problema a multilabel
+    lb.fit(y_test)
+    lb.classes_.tolist()    #Ho le classi in una lista
+    fpr = dict()
+    tpr = dict()
+    roc_auc = dict()
+    by_test = lb.transform(y_test)
+    by_pred = lb.transform(y_pred)
+    for i in range(6):
+        fpr[i], tpr[i], _ = roc_curve(by_test[:, i], by_pred[:, i])
+        roc_auc[i] = auc(fpr[i], tpr[i])    
+    roc_auc = roc_auc_score(by_test, by_pred, average=None)
+    plt.figure(figsize=(8, 5))
+    for i in range(6):
+        plt.plot(fpr[i], tpr[i], 
+                 label='%s ROC curve (area = %0.2f)' % (lb.classes_.tolist()[i], roc_auc[i]))
 
-
-
-
+        plt.plot([0, 1], [0, 1], 'k--')
+        plt.xlim([0.0, 1.0])
+        plt.ylim([0.0, 1.05])
+        plt.xlabel('False Positive Rate', fontsize=20)
+        plt.ylabel('True Positive Rate', fontsize=20) 
+        plt.tick_params(axis='both', which='major', labelsize=22)
+        plt.legend(loc="lower right", fontsize=14, frameon=False)
+        plt.show()
