@@ -18,7 +18,6 @@ from sklearn.metrics import confusion_matrix
 from sklearn.metrics import accuracy_score, f1_score, classification_report
 from sklearn.metrics import roc_curve, auc, roc_auc_score
 from sklearn.model_selection import cross_val_score
-import logging
 
 def into_a_string(x):
     ''' Prendo una lista di valori e trasformo ogni elemento in stringa'''
@@ -94,3 +93,33 @@ if __name__ == '__main__':
     print(classification_report(y_test, y_pred))
     print(confusion_matrix(y_test, y_pred))
 
+    #crossvalidation
+    scores = cross_val_score(clf, X, y, cv=5)
+    print('Cross validation Accuracy: %0.4f (+/- %0.2f)' % (scores.mean(), scores.std() * 2))
+
+    ##Vediamo com'è fatta la ROC CURVE
+    lb = LabelBinarizer() #dobbiamo usare questo dal momento che abbiamo un problema a multilabel
+    lb.fit(y_test)
+    lb.classes_.tolist()    #Ho le classi in una lista
+    fpr = dict()
+    tpr = dict()
+    roc_auc = dict()
+    by_test = lb.transform(y_test)
+    by_pred = lb.transform(y_pred)
+    for i in range(6):
+        fpr[i], tpr[i], _ = roc_curve(by_test[:, i], by_pred[:, i])
+        roc_auc[i] = auc(fpr[i], tpr[i])    
+    roc_auc = roc_auc_score(by_test, by_pred, average=None)
+    plt.figure(figsize=(8, 5))
+    for i in range(6):
+        plt.plot(fpr[i], tpr[i], 
+                 label='%s ROC curve (area = %0.2f)' % (lb.classes_.tolist()[i], roc_auc[i]))
+
+        plt.plot([0, 1], [0, 1], 'k--')
+        plt.xlim([0.0, 1.0])
+        plt.ylim([0.0, 1.05])
+        plt.xlabel('False Positive Rate', fontsize=20)
+        plt.ylabel('True Positive Rate', fontsize=20) 
+        plt.tick_params(axis='both', which='major', labelsize=22)
+        plt.legend(loc="lower right", fontsize=14, frameon=False)
+        plt.show()
