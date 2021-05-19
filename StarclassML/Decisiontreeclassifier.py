@@ -123,9 +123,9 @@ def overfitting_function(X_tr, y_tr, X_te, y_te):
 if __name__ == '__main__':
 
     df = pd.read_csv('C:\\Users\\Uno\\Documents\\Uni\\Computing methods\\Esame\\Stars.csv')
-    del df['A_M']   #Se non commentata, siamo nel dataset 2
-    del df['R']
-    del df['L']
+    #del df['A_M']   #Se non commentata, siamo nel dataset 2
+    #del df['R']
+    #del df['L']
 
     ##Trasformo la variabile target in una stringa.
     labels = df['Type'].values
