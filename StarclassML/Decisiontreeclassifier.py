@@ -143,6 +143,15 @@ if __name__ == '__main__':
         label_encoders[col] = le
 
 
+    ##Trasformo alcune variabili usando il logaritmo in base 10
+    columns = ['Temperature', 'L','R']
+
+    for col in columns:
+        X = df[col].values
+        Y = np.log10(X)
+        df[col] = Y
+
+
     ##Splitto i dati in training e test set
     attributes = [col for col in df.columns if col != 'Type']
     X = df[attributes].values

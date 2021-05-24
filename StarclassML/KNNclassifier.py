@@ -52,12 +52,20 @@ if __name__ == '__main__':
         if col != 'A_M' and col != 'R' and col != 'Type':
             del df[col]
 
+    ##Trasformo alcune variabili usando il logaritmo in base 10
+    columns = ['R']
+
+    for col in columns:
+        X = df[col].values
+        Y = np.log10(X)
+        df[col] = Y
 
     scaler = MinMaxScaler()
     P = scaler.fit_transform(df.values)
     #da cambiare se si cambia il dataset
     df['R'] = P[:,0]
     df['A_M'] = P[:,1]
+
 
     ##Definisco il train set e il test set
     attributes = [col for col in df.columns if col != 'Type']
