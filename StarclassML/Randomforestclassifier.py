@@ -78,7 +78,7 @@ if __name__ == '__main__':
              }
     clf = RandomForestClassifier(n_estimators=100, criterion='gini', max_depth=None, 
                              min_samples_split=2, min_samples_leaf=1, class_weight=None)
-    random_search = RandomizedSearchCV(clf, param_distributions=param_list, n_iter=1000, n_jobs= -1)
+    random_search = RandomizedSearchCV(clf, param_distributions=param_list, n_iter=100, n_jobs= -1)
     random_search.fit(X_train, y_train)
     report(random_search.cv_results_, n_top=3)
 
@@ -94,7 +94,7 @@ if __name__ == '__main__':
     print(confusion_matrix(y_test, y_pred))
 
     #crossvalidation
-    scores = cross_val_score(clf, X, y, cv=5)
+    scores = cross_val_score(clf, X_train, y_train, cv=5)
     print('Cross validation Accuracy: %0.4f (+/- %0.2f)' % (scores.mean(), scores.std() * 2))
 
     ##Vediamo com'è fatta la ROC CURVE

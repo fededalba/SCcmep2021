@@ -167,11 +167,12 @@ if __name__ == '__main__':
     clf = DecisionTreeClassifier(criterion='gini', max_depth=None, min_samples_split=2, min_samples_leaf=1)
     #randomized search estrae valori casualmente dallo spazio dei parametri
     random_search = RandomizedSearchCV(clf, param_distributions=param_list, n_iter=100)
-    random_search.fit(X, y)
+    random_search.fit(X_train, y_train)
     report(random_search.cv_results_, n_top=3)
 
     ##seleziono l'albero migliore e stampo il numero di nodi.
-    clf = DecisionTreeClassifier(criterion='gini', max_depth=17, min_samples_split=5, min_samples_leaf=20)
+    #clf = DecisionTreeClassifier(criterion='gini', max_depth=17, min_samples_split=5, min_samples_leaf=20)
+    clf = random_search.best_estimator_
     clf = clf.fit(X_train, y_train)
     clf_tree = clf.tree_
     print(f'Il numero di nodi è {clf_tree.node_count}')
@@ -211,7 +212,7 @@ if __name__ == '__main__':
         print(col, imp)
 
     #crossvalidation
-    scores = cross_val_score(clf, X, y, cv=5)
+    scores = cross_val_score(clf, X_train, y_train, cv=5)
     print('Cross validation Accuracy: %0.4f (+/- %0.2f)' % (scores.mean(), scores.std() * 2))
 
     ##Vediamo com'è fatta la ROC CURVE
