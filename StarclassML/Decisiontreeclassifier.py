@@ -120,7 +120,8 @@ def overfitting_function(X_tr, y_tr, X_te, y_te):
 
 if __name__ == '__main__':
 
-    df = pd.read_csv(r'C:\Users\feder\Downloads\archive\Stars.csv')
+    #df = pd.read_csv(r'C:\Users\feder\Downloads\archive\Stars.csv')
+    df = pd.read_csv('C:\\Users\\Uno\\Documents\\Uni\\Computing methods\\Esame\\Stars.csv')
 
     ##Trasformiamo la target class in un valore categorico
     stars_type = ['Red Dwarf','Brown Dwarf','White Dwarf','Main Sequence','Super Giants','Hyper Giants']
@@ -145,7 +146,6 @@ if __name__ == '__main__':
     attributes = [col for col in df.columns if col != 'Type']
     X = df[attributes].values
     y = df['Type']
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=1, stratify=y)
 
 
     ##Esploro lo spazio dei parametri del mio albero per capire quale è quello più ideale
@@ -157,13 +157,12 @@ if __name__ == '__main__':
     clf = DecisionTreeClassifier(criterion='gini', max_depth=None, min_samples_split=2, min_samples_leaf=1)
     #randomized search estrae valori casualmente dallo spazio dei parametri
     random_search = RandomizedSearchCV(clf, param_distributions=param_list, n_iter=200, scoring = 'accuracy')
-    random_search.fit(X_train, y_train)
+    random_search.fit(X, y)
     report(random_search.cv_results_, n_top=3)
 
     ##seleziono l'albero migliore e stampo il numero di nodi.
     #clf = DecisionTreeClassifier(criterion='gini', max_depth=17, min_samples_split=5, min_samples_leaf=20)
     clf = random_search.best_estimator_
-    clf = clf.fit(X_train, y_train)
     clf_tree = clf.tree_
     print(f'Il numero di nodi è {clf_tree.node_count}')
 
@@ -178,17 +177,6 @@ if __name__ == '__main__':
     Image(graph.create_png())
 
 
-    ##Analizziamo le performance dell'albero.
-    y_pred = clf.predict(X_test)
-    y_pred_tr = clf.predict(X_train)
-    print('Train Accuracy %s' % accuracy_score(y_train, y_pred_tr))
-    print('Train F1-score %s' % f1_score(y_train, y_pred_tr, average=None))
-    print()
-    print('Test Accuracy %s' % accuracy_score(y_test, y_pred))
-    print('Test F1-score %s' % f1_score(y_test, y_pred, average=None))
-    print(classification_report(y_test, y_pred))
-    print(confusion_matrix(y_test, y_pred))
-
 
     ##Analizziamo l'overfitting
     '''nodi, trainingerror, testerror = overfitting_function(X_train, y_train, X_test, y_test)
@@ -202,7 +190,7 @@ if __name__ == '__main__':
     scores = cross_val_score(clf, X, y, cv=5)
     print('Cross validation Accuracy: %0.4f (+/- %0.2f)' % (scores.mean(), scores.std() * 2))
 
-    ##Vediamo com'è fatta la ROC CURVE
+    '''  ##Vediamo com'è fatta la ROC CURVE
     lb = LabelBinarizer() #dobbiamo usare questo dal momento che abbiamo un problema a multilabel
     lb.fit(y_test)
     lb.classes_.tolist()    #Ho le classi in una lista
@@ -227,7 +215,7 @@ if __name__ == '__main__':
         plt.ylabel('True Positive Rate', fontsize=20) 
         plt.tick_params(axis='both', which='major', labelsize=22)
         plt.legend(loc="lower right", fontsize=14, frameon=False)
-        plt.show()
+        plt.show()'''
 
 
 
@@ -236,8 +224,8 @@ if __name__ == '__main__':
     X = scaler.fit_transform(X)
 
     pca = PCA(n_components=6)
-    pca.fit(X_train)
-    X_pca = pca.transform(X_train)      #Ci devo mettere xtrain o x?
+    pca.fit(X)
+    X_pca = pca.transform(X)
 
     ##Esploro lo spazio dei parametri del mio albero per capire quale è quello più ideale
     param_list = {'max_depth': [None] + list(np.arange(2, 20)),
@@ -247,16 +235,13 @@ if __name__ == '__main__':
     clf = DecisionTreeClassifier(criterion='entropy', max_depth=None, min_samples_split=2, min_samples_leaf=1)
     #randomized search estrae valori casualmente dallo spazio dei parametri
     random_search = RandomizedSearchCV(clf, param_distributions=param_list, n_iter=200, scoring = 'accuracy')
-    random_search.fit(X_train, y_train)
+    random_search.fit(X_pca, y)
     report(random_search.cv_results_, n_top=3)
 
     ##seleziono l'albero migliore e stampo il numero di nodi.
     #clf = DecisionTreeClassifier(criterion='gini', max_depth=17, min_samples_split=5, min_samples_leaf=20)
     clf = random_search.best_estimator_
-    clf = clf.fit(X_train, y_train)
 
-    y_pred = clf.predict(X_test)
-    y_pred_tr = clf.predict(X_train)    #questi sono inutili
 
 
     #crossvalidation
