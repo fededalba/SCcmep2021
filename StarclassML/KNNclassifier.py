@@ -21,6 +21,7 @@ from sklearn.metrics import confusion_matrix
 from sklearn.metrics import accuracy_score, f1_score, classification_report
 from sklearn.metrics import roc_curve, auc, roc_auc_score
 from sklearn.model_selection import cross_val_score
+from sklearn.decomposition import PCA
 
 
 def report(results, n_top=3):
@@ -36,60 +37,85 @@ def report(results, n_top=3):
 
 
 
-def into_a_string(x):
-    ''' Prendo una lista di valori e trasformo ogni elemento in stringa'''
-    new_labels = [str(element) for element in x]
-    return(new_labels)
-
-
 if __name__ == '__main__':
-    df = pd.read_csv('C:\\Users\\Uno\\Documents\\Uni\\Computing methods\\Esame\\Stars.csv')
-    ##KNN perde la nozione di distanza più il dataset è esteso. A seconda del
-    ##dataset che stiamo studiando selezionerò sempre i due attributi più impattanti secondo il decisiontree classifier.
+    df = pd.read_csv(r'C:\Users\feder\Downloads\archive\Stars.csv')
 
-    ##dataset 1
-    for col in df.columns:
-        if col != 'A_M' and col != 'R' and col != 'Type':
-            del df[col]
+    df['logR'] = np.log10(df['R'].values)
+    y = df['Type'].values
 
-    ##Trasformo alcune variabili usando il logaritmo in base 10
-    columns = ['R']
+    ##Trasformo i valori categorici in numeri interi
+    column2encode = ['Spectral_Class', 'Color']
+    for col in column2encode:
+        le = LabelEncoder()
+        df[col] = le.fit_transform(df[col])
 
-    for col in columns:
-        X = df[col].values
-        Y = np.log10(X)
-        df[col] = Y
+    ##definisco i dataset con cui lavorerò
+    df2 = df.filter(items= ['R', 'Temperature'])
+    df2R = df.filter(items= ['R', 'A_M'])
+    df3 = df.filter(items = ['R', 'Temperature', 'Spectral_Class'])
+    df3R = df.filter(items = ['R', 'A_M', 'L'])
 
-    scaler = MinMaxScaler()
-    P = scaler.fit_transform(df.values)
-    #da cambiare se si cambia il dataset
-    df['R'] = P[:,0]
-    df['A_M'] = P[:,1]
-
-
-    ##Definisco il train set e il test set
-    attributes = [col for col in df.columns if col != 'Type']
-    X = df[attributes].values
-    y = df['Type']
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.4, random_state=1, stratify=y)
-
-
-
-    ##Vediamo qual'è il valore di k ideale per il nostro dataset
+    dataarray = [df2, df2R, df3, df3R]
+    ##Definiamo il classificatore prima del ciclo for
     param_list = {'n_neighbors': np.arange(1,100)}
     clf = KNeighborsClassifier(n_neighbors=1, weights = 'distance')
     random_search = RandomizedSearchCV(clf, param_distributions=param_list, n_iter=50)
-    random_search.fit(X_train, y_train)
-    report(random_search.cv_results_, n_top=3)
 
-    clf = random_search.best_estimator_
-    y_pred = clf.predict(X_test)
-    y_pred_tr = clf.predict(X_train)
-
-    print(classification_report(y_test, y_pred))
-    print(confusion_matrix(y_test, y_pred))
+    CV_scores = []
+    labels = []
+    for dataset in dataarray:
+        scaler = MinMaxScaler()
+        X = scaler.fit_transform(dataset.values)
 
 
+        ##Definisco il train set e il test set
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=1, stratify=y)
+
+        ##hyperparameter tuning
+        random_search.fit(X_train, y_train)
+        report(random_search.cv_results_, n_top=3)
+
+        clf = random_search.best_estimator_
+        y_pred = clf.predict(X_test)
+        y_pred_tr = clf.predict(X_train)
+
+        print(classification_report(y_test, y_pred))
+        print(confusion_matrix(y_test, y_pred))
+
+        ##Vediamo le performance usando la crossvalidation
+        scores = cross_val_score(clf, X, y, cv=5)
+        print('Cross validation Accuracy: %0.4f (+/- %0.4f)' % (scores.mean(), scores.std() * 2))
+
+
+    ##PCA
+    scaler = StandardScaler()
+    del df['Type']
+    X = scaler.fit_transform(df.values)
+    for i in range(1,3):
+        print(i)
+        ##Definisco il train set e il test set
+        pca = PCA(n_components= i)
+        pca.fit(X)
+        X_pca = pca.transform(X)
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=1, stratify=y)
+
+        ##hyperparameter tuning
+        random_search.fit(X_train, y_train)
+        report(random_search.cv_results_, n_top=3)
+
+        clf = random_search.best_estimator_
+        y_pred = clf.predict(X_test)
+        y_pred_tr = clf.predict(X_train)
+
+        print(classification_report(y_test, y_pred))
+        print(confusion_matrix(y_test, y_pred))
+
+        ##Vediamo le performance usando la crossvalidation
+        scores = cross_val_score(clf, X, y, cv=5)
+        print('Cross validation Accuracy: %0.4f (+/- %0.4f)' % (scores.mean(), scores.std() * 2))
+        
+
+'''
     ##plottiamo
     n_neigh = clf.n_neighbors
     X = X_train
@@ -127,4 +153,4 @@ if __name__ == '__main__':
         plt.title("3-Class classification (k = %i, weights = '%s')"
                   % (n_neigh, weights))
         
-        plt.show()
+        plt.show()'''

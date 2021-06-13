@@ -19,10 +19,9 @@ from sklearn.metrics import accuracy_score, f1_score, classification_report
 from sklearn.metrics import roc_curve, auc, roc_auc_score
 from sklearn.model_selection import cross_val_score
 
-def into_a_string(x):
-    ''' Prendo una lista di valori e trasformo ogni elemento in stringa'''
-    new_labels = [str(element) for element in x]
-    return(new_labels)
+from sklearn.preprocessing import StandardScaler
+
+from sklearn.decomposition import PCA
 
 def report(results, n_top=3):
     for i in range(1, n_top + 1):
@@ -43,29 +42,27 @@ from StarclassML.Decisiontreeclassifier import report'''
 
 
 if __name__ == '__main__':
-    df = pd.read_csv('C:\\Users\\Uno\\Documents\\Uni\\Computing methods\\Esame\\Stars.csv')
+    df = pd.read_csv(r'C:\Users\feder\Downloads\archive\Stars.csv')
 
-    ##Trasformo la variabile target in una stringa.
-    labels = df['Type'].values
-    del df['Type']
-    df['Type'] = into_a_string(labels)
+    ##Trasformiamo la target class in un valore categorico
+    stars_type = ['Red Dwarf','Brown Dwarf','White Dwarf','Main Sequence','Super Giants','Hyper Giants']
+    df['Type'] =  df['Type'].replace(df['Type'].unique(),stars_type)
 
-
+    ##Trasformo alcune variabili usando il logaritmo in base 10
+    df['R'] = np.log10(df['R'].values)
 
     ##Trasformo le variabili categoriche in numeri interi
-    label_encoders = dict()
     column2encode = ['Spectral_Class', 'Color']
     for col in column2encode:
         le = LabelEncoder()
         df[col] = le.fit_transform(df[col])
-        label_encoders[col] = le
 
 
     ##Definisco il train set e il test set
     attributes = [col for col in df.columns if col != 'Type']
     X = df[attributes].values
     y = df['Type']
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.4, random_state=1, stratify=y)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=1, stratify=y)
 
 
     ##Creiamo l'ensemble di alberi e vediamo quale ci da la miglior performance
@@ -93,8 +90,12 @@ if __name__ == '__main__':
     print(classification_report(y_test, y_pred))
     print(confusion_matrix(y_test, y_pred))
 
+    ##Vediamo quali sono gli attributi che più impattano nella classificazione
+    for col, imp in zip(attributes, clf.feature_importances_):
+        print(col, imp)
+
     #crossvalidation
-    scores = cross_val_score(clf, X_train, y_train, cv=5)
+    scores = cross_val_score(clf, X, y, cv=5)
     print('Cross validation Accuracy: %0.4f (+/- %0.2f)' % (scores.mean(), scores.std() * 2))
 
     ##Vediamo com'è fatta la ROC CURVE
@@ -123,3 +124,31 @@ if __name__ == '__main__':
         plt.tick_params(axis='both', which='major', labelsize=22)
         plt.legend(loc="lower right", fontsize=14, frameon=False)
         plt.show()
+
+    ##Analisi con pca, devo prima centrare i dati.
+    scaler = StandardScaler()
+    X = scaler.fit_transform(X)
+
+    pca = PCA(n_components=6)
+    pca.fit(X)
+    X_pca = pca.transform(X)      #Ci devo mettere xtrain o x?
+
+    ##Esploro lo spazio dei parametri del mio albero per capire quale è quello più ideale
+    param_list = {'max_depth': [None] + list(np.arange(2, 20)),
+              'min_samples_split': [2, 5, 10, 20, 30, 50, 100],
+              'min_samples_leaf': [1, 5, 10, 20, 30, 50, 100]
+              }
+    clf = RandomForestClassifier(criterion='entropy', max_depth=None, min_samples_split=2, min_samples_leaf=1)
+    #randomized search estrae valori casualmente dallo spazio dei parametri
+    random_search = RandomizedSearchCV(clf, param_distributions=param_list, n_iter=200, scoring = 'accuracy')
+    random_search.fit(X_train, y_train)
+    report(random_search.cv_results_, n_top=3)
+
+    ##seleziono l'albero migliore e stampo il numero di nodi.
+    #clf = DecisionTreeClassifier(criterion='gini', max_depth=17, min_samples_split=5, min_samples_leaf=20)
+    clf = random_search.best_estimator_
+
+
+    #crossvalidation
+    scores = cross_val_score(clf, X, y, cv=5)
+    print('Cross validation Accuracy: %0.4f (+/- %0.4f)' % (scores.mean(), scores.std() * 2))
