@@ -35,8 +35,8 @@ def report(results, n_top=3):
             print("")
 
 if __name__ == '__main__':
-    df = pd.read_csv(r'C:\Users\feder\Downloads\archive\Stars.csv')
-    #df = pd.read_csv('C:\\Users\\Uno\\Documents\\Uni\\Computing methods\\Esame\\Stars.csv')
+    #df = pd.read_csv(r'C:\Users\feder\Downloads\archive\Stars.csv')
+    df = pd.read_csv('C:\\Users\\Uno\\Documents\\Uni\\Computing methods\\Esame\\Stars.csv')
 
     ##Trasformiamo la target class in un valore categorico
     stars_type = ['Red Dwarf','Brown Dwarf','White Dwarf','Main Sequence','Super Giants','Hyper Giants']
@@ -63,12 +63,13 @@ if __name__ == '__main__':
     y = df['Type']
 
     clf = SVC(gamma='auto')
-    param_list = {'C': [0.0001, 0.001, 0.01, 0.1, 1, 10, 100], 'kernel': ['linear','rbf', 'poly'], 'gamma': ['auto', 0.0001, 0.001, 0.01, 0.1,1, 100]}
-    grid_search = GridSearchCV(clf, param_grid=param_list, scoring = 'accuracy')
+    param_list = {'C': [0.001, 0.01, 0.1, 1, 10, 100], 'kernel': ['linear','rbf', 'poly'], 'gamma': ['auto', 0.001, 0.01, 0.1,1]}
+    grid_search = GridSearchCV(clf, param_grid=param_list, scoring = 'accuracy', n_jobs = -1)
 
     CV_scores = []
     CV_std = []
     labels = ['dim2', 'dim3', 'dim4', 'dim6']
+
 
     for dataset in dataarray:
         ##Per il support vector machine mi conviene utilizzare lo standard scaler
@@ -93,16 +94,19 @@ if __name__ == '__main__':
     attributes = [col for col in df.columns if col != 'Type']
     X = df[attributes].values
     X = scaler.fit_transform(X)
+    #param_list = {'C': [0.0001, 0.001, 0.01, 0.1, 1, 10, 100], 'kernel': ['linear','rbf', 'poly'], 'gamma': ['auto']}
+    #grid_search = GridSearchCV(clf, param_grid=param_list, scoring = 'accuracy', n_jobs = -1)
     for i in [2,3,4,6]:
         ##Definisco il train set e il test set
+        print(i)
         pca = PCA(n_components= i)
         pca.fit(X)
         X_pca = pca.transform(X)
 
         ##hyperparameter tuning
         grid_search.fit(X_pca, y)
+        print(3)
         report(grid_search.cv_results_, n_top=3)
-
         clf = grid_search.best_estimator_
 
         ##Vediamo le performance usando la crossvalidation
@@ -113,13 +117,13 @@ if __name__ == '__main__':
 
     ##Separo i punteggi in base al metodo usato per ridurre la dimensione
     CV_corr = CV_scores[:4]
-    CV_RF = CV_scores[5:8]
-    CV_pca = CV_scores[9:12]
-    method = ['most uncorrelated', 'Randomforest feature selection', 'PCA']
+    CV_RF = CV_scores[4:8]
+    CV_pca = CV_scores[8:]
+    
 
     plt.figure()
     sns.set_theme(style = 'darkgrid')
-    sns.lineplot(labels, CV_corr)
-    sns.lineplot(labels, CV_RF)
-    sns.lineplot(labels, CV_pca)
+    sns.lineplot(labels, CV_corr, label = 'feature selected by correlation')
+    sns.lineplot(labels, CV_RF, label = 'feature selected by randomforest')
+    sns.lineplot(labels, CV_pca, label = 'feature selected by pca')
     plt.show()
