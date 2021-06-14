@@ -62,58 +62,55 @@ if __name__ == '__main__':
     random_search = RandomizedSearchCV(clf, param_distributions=param_list, n_iter=50)
 
     CV_scores = []
-    labels = []
+    CV_std = []
+    labels = ['df2', 'df2R', 'df3', 'df3R', 'df2pca', 'df3pca']
     for dataset in dataarray:
         scaler = MinMaxScaler()
         X = scaler.fit_transform(dataset.values)
 
-
-        ##Definisco il train set e il test set
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=1, stratify=y)
-
         ##hyperparameter tuning
-        random_search.fit(X_train, y_train)
+        random_search.fit(X, y)
         report(random_search.cv_results_, n_top=3)
 
         clf = random_search.best_estimator_
-        y_pred = clf.predict(X_test)
-        y_pred_tr = clf.predict(X_train)
-
-        print(classification_report(y_test, y_pred))
-        print(confusion_matrix(y_test, y_pred))
 
         ##Vediamo le performance usando la crossvalidation
         scores = cross_val_score(clf, X, y, cv=5)
         print('Cross validation Accuracy: %0.4f (+/- %0.4f)' % (scores.mean(), scores.std() * 2))
+        CV_scores.append(scores.mean())
+        CV_std.append(scores.std())
 
 
     ##PCA
     scaler = StandardScaler()
-    del df['Type']
-    X = scaler.fit_transform(df.values)
-    for i in range(1,3):
-        print(i)
+    attributes = [col for col in df.columns if col != 'Type']
+    X = df[attributes].values
+    X = scaler.fit_transform(X)
+    for i in range(2,4):
         ##Definisco il train set e il test set
         pca = PCA(n_components= i)
         pca.fit(X)
         X_pca = pca.transform(X)
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=1, stratify=y)
 
         ##hyperparameter tuning
-        random_search.fit(X_train, y_train)
+        random_search.fit(X_pca, y)
         report(random_search.cv_results_, n_top=3)
 
         clf = random_search.best_estimator_
-        y_pred = clf.predict(X_test)
-        y_pred_tr = clf.predict(X_train)
-
-        print(classification_report(y_test, y_pred))
-        print(confusion_matrix(y_test, y_pred))
 
         ##Vediamo le performance usando la crossvalidation
         scores = cross_val_score(clf, X, y, cv=5)
         print('Cross validation Accuracy: %0.4f (+/- %0.4f)' % (scores.mean(), scores.std() * 2))
-        
+        CV_scores.append(scores.mean())
+        CV_std.append(scores.std())
+
+
+    plt.figure()
+    plt.grid()
+    plt.ylabel('CV scores')
+    plt.plot(labels, CV_scores, 'o', color = 'black')
+    #plt.errorbar(labels, CV_scores, CV_std, fmt = '.', color = 'black')
+    plt.show()        
 
 '''
     ##plottiamo
@@ -121,16 +118,13 @@ if __name__ == '__main__':
     X = X_train
     y = y_train
     h = 0.2
-
     # Create color maps
     cmap_light = ListedColormap(['orange', 'cyan', 'cornflowerblue', 'green', 'yellow'])
     cmap_bold = ListedColormap(['darkorange', 'c', 'darkblue', 'red', 'blue', 'darkgreen'])
-
     for weights in ['uniform', 'distance']:
         # we create an instance of Neighbours Classifier and fit the data.
         clf = neighbors.KNeighborsClassifier(n_neigh, weights=weights)
         clf.fit(X, y)
-
         df['Type'] = P[:,2]
         # Plot the decision boundary. For that, we will assign a color to each
         # point in the mesh [x_min, x_max]x[y_min, y_max].
@@ -139,12 +133,10 @@ if __name__ == '__main__':
         xx, yy = np.meshgrid(np.arange(x_min, x_max, h),
                              np.arange(y_min, y_max, h))
         Z = clf.predict(np.c_[xx.ravel(), yy.ravel()])
-
         # Put the result into a color plot
         Z = Z.reshape(xx.shape)
         plt.figure()
         plt.pcolormesh(xx, yy, Z, cmap=cmap_light)
-
         # Plot also the training points
         plt.scatter(X[:, 0], X[:, 1], c=y, cmap=cmap_bold,
                     edgecolor='k', s=20)
