@@ -17,7 +17,6 @@ from sklearn.preprocessing import LabelEncoder
 #from sklearn.svm import LinearSVC
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import GridSearchCV
-from sklearn.model_selection import cross_val_score
 from sklearn.svm import SVC
 from sklearn.decomposition import PCA
 import seaborn as sns
@@ -54,7 +53,7 @@ if __name__ == '__main__':
     df2 = df.filter(items= ['R', 'Temperature'])
     df2R = df.filter(items= ['R', 'A_M'])
     df3 = df.filter(items = ['R', 'Temperature', 'Spectral_Class'])
-    df3R = df.filter(items = ['R', 'A_M', 'L'])
+    df3R = df.filter(items = ['Temperature', 'R', 'A_M'])
     df4 = df.filter(items = ['R', 'Temperature', 'Spectral_Class', 'Color'])
     df4R = df.filter(items = ['R', 'A_M', 'L', 'Temperature'])
     df6 = df.filter(items = ['R', 'A_M', 'L', 'Temperature', 'Color', 'Spectral_Class'])

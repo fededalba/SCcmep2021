@@ -99,7 +99,7 @@ if __name__ == '__main__':
         clf = random_search.best_estimator_
 
         ##Vediamo le performance usando la crossvalidation
-        scores = cross_val_score(clf, X, y, cv=5)
+        scores = cross_val_score(clf, X, y, cv=3)
         print('Cross validation Accuracy: %0.4f (+/- %0.4f)' % (scores.mean(), scores.std() * 2))
         CV_scores.append(scores.mean())
         CV_std.append(scores.std())
