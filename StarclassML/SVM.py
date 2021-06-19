@@ -5,41 +5,35 @@ Created on Wed Jun  2 18:25:31 2021
 @author: Uno
 """
 
-
+import os
 import numpy as np
 import pandas as pd
+import seaborn as sns
 import matplotlib.pyplot as plt
-from collections import defaultdict
-from sklearn.model_selection import train_test_split, cross_val_score 
-from sklearn.metrics import accuracy_score, f1_score, classification_report
-from sklearn.metrics import roc_curve, auc, roc_auc_score
+from sklearn.model_selection import cross_val_score
 from sklearn.preprocessing import LabelEncoder
-#from sklearn.svm import LinearSVC
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import GridSearchCV
 from sklearn.svm import SVC
 from sklearn.decomposition import PCA
-import seaborn as sns
 
 
 def report(results, n_top=3):
+    '''Questa funzione mi rende gli iperparametri per cui ho ottenuto i migliori top 3 risultati '''
     for i in range(1, n_top + 1):
         candidates = np.flatnonzero(results['rank_test_score'] == i)
         for candidate in candidates:
             print("Model with rank: {0}".format(i))
             print("Mean validation score: {0:.3f} (std: {1:.3f})".format(
-                  results['mean_test_score'][candidate],
-                  results['std_test_score'][candidate]))
+                results['mean_test_score'][candidate],
+                results['std_test_score'][candidate]))
             print("Parameters: {0}".format(results['params'][candidate]))
             print("")
 
 if __name__ == '__main__':
-    #df = pd.read_csv(r'C:\Users\feder\Downloads\archive\Stars.csv')
-    df = pd.read_csv('C:\\Users\\Uno\\Documents\\Uni\\Computing methods\\Esame\\Stars.csv')
-
-    ##Trasformiamo la target class in un valore categorico
-    stars_type = ['Red Dwarf','Brown Dwarf','White Dwarf','Main Sequence','Super Giants','Hyper Giants']
-    df['Type'] =  df['Type'].replace(df['Type'].unique(),stars_type)
+    PATH_ACTUAL = os.getcwd()
+    PATH = PATH_ACTUAL + "/data/Stars.csv"
+    df = pd.read_csv(PATH)
 
     ##Trasformo le variabili categoriche in numeri interi
     column2encode = ['Spectral_Class', 'Color']
@@ -50,24 +44,28 @@ if __name__ == '__main__':
     ##Utilizzo la trasformazione logaritmica per R
     df['logR'] = np.log10(df['R'].values)
 
-    df2 = df.filter(items= ['R', 'Temperature'])
-    df2R = df.filter(items= ['R', 'A_M'])
-    df3 = df.filter(items = ['R', 'Temperature', 'Spectral_Class'])
-    df3R = df.filter(items = ['Temperature', 'R', 'A_M'])
-    df4 = df.filter(items = ['R', 'Temperature', 'Spectral_Class', 'Color'])
-    df4R = df.filter(items = ['R', 'A_M', 'L', 'Temperature'])
-    df6 = df.filter(items = ['R', 'A_M', 'L', 'Temperature', 'Color', 'Spectral_Class'])
+    df2 = df.filter(items=['R', 'Temperature'])
+    df2R = df.filter(items=['R', 'A_M'])
+    df3 = df.filter(items=['R', 'Temperature', 'Spectral_Class'])
+    df3R = df.filter(items=['Temperature', 'R', 'A_M'])
+    df4 = df.filter(items=['R', 'Temperature', 'Spectral_Class', 'Color'])
+    df4R = df.filter(items=['R', 'A_M', 'L', 'Temperature'])
+    df6 = df.filter(items=['R', 'A_M', 'L', 'Temperature', 'Color',
+                           'Spectral_Class'])
 
     dataarray = [df2, df3, df4, df6, df2R, df3R, df4R]
     y = df['Type']
 
     clf = SVC(gamma='auto')
-    param_list = {'C': [0.001, 0.01, 0.1, 1, 10, 100], 'kernel': ['linear','rbf', 'poly'], 'gamma': ['auto', 0.001, 0.01, 0.1,1]}
-    grid_search = GridSearchCV(clf, param_grid=param_list, scoring = 'accuracy', n_jobs = -1)
+    param_list = {'C': [0.001, 0.01, 0.1, 1, 10, 100],
+                  'kernel': ['linear', 'rbf', 'poly'],
+                  'gamma': ['auto', 0.001, 0.01, 0.1, 1]}
+    grid_search = GridSearchCV(clf, param_grid=param_list,
+                               scoring='accuracy', n_jobs=-1)
 
     CV_scores = []
     CV_std = []
-    labels = ['dim2', 'dim3', 'dim4', 'dim6']
+    labels = ['dim2', 'dim3', 'dim4', 'dim5']
 
 
     for dataset in dataarray:
@@ -93,12 +91,9 @@ if __name__ == '__main__':
     attributes = [col for col in df.columns if col != 'Type']
     X = df[attributes].values
     X = scaler.fit_transform(X)
-    #param_list = {'C': [0.0001, 0.001, 0.01, 0.1, 1, 10, 100], 'kernel': ['linear','rbf', 'poly'], 'gamma': ['auto']}
-    #grid_search = GridSearchCV(clf, param_grid=param_list, scoring = 'accuracy', n_jobs = -1)
-    for i in [2,3,4,6]:
+    for i in [2, 3, 4, 5]:
         ##Definisco il train set e il test set
-        print(i)
-        pca = PCA(n_components= i)
+        pca = PCA(n_components=i)
         pca.fit(X)
         X_pca = pca.transform(X)
 
@@ -116,13 +111,20 @@ if __name__ == '__main__':
 
     ##Separo i punteggi in base al metodo usato per ridurre la dimensione
     CV_corr = CV_scores[:4]
+    CV_corrstd = CV_std[:4]
     CV_RF = CV_scores[4:8]
+    CV_RFstd = CV_std[4:8]
     CV_pca = CV_scores[8:]
-    
+    CV_pcastd = CV_std[8:]
+
 
     plt.figure()
-    sns.set_theme(style = 'darkgrid')
-    sns.lineplot(labels, CV_corr, label = 'feature selected by correlation')
-    sns.lineplot(labels, CV_RF, label = 'feature selected by randomforest')
-    sns.lineplot(labels, CV_pca, label = 'feature selected by pca')
+    sns.set_theme(style='darkgrid')
+    plt.errorbar(labels, CV_corr, yerr=CV_corrstd, fmt='.', color='blue')
+    sns.lineplot(labels, CV_corr, label='feature selected by correlation')
+    plt.errorbar(labels, CV_RF, yerr=CV_RFstd, fmt='.', color='orange')
+    sns.lineplot(labels, CV_RF, label='feature selected by randomforest')
+    plt.errorbar(labels, CV_pca, yerr=CV_pcastd, fmt='.', color='green')
+    sns.lineplot(labels, CV_pca, label='feature selected by pca')
+    plt.ylabel('Cross Validation Mean Accuracy')
     plt.show()

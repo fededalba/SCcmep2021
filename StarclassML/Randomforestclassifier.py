@@ -5,49 +5,39 @@ Created on Tue May 18 11:56:29 2021
 @author: Uno
 """
 
-
+import os
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 from sklearn.preprocessing import LabelEncoder
-from sklearn.preprocessing import LabelBinarizer
-from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import RandomizedSearchCV
-from sklearn.metrics import confusion_matrix
-from sklearn.metrics import accuracy_score, f1_score, classification_report
-from sklearn.metrics import roc_curve, auc, roc_auc_score
 from sklearn.model_selection import cross_val_score
 
-from sklearn.preprocessing import StandardScaler
 
-from sklearn.decomposition import PCA
 
 def report(results, n_top=3):
+    '''Questa funzione mi rende gli iperparametri per cui ho ottenuto i migliori top 3 risultati '''
     for i in range(1, n_top + 1):
         candidates = np.flatnonzero(results['rank_test_score'] == i)
         for candidate in candidates:
             print("Model with rank: {0}".format(i))
             print("Mean validation score: {0:.3f} (std: {1:.3f})".format(
-                  results['mean_test_score'][candidate],
-                  results['std_test_score'][candidate]))
+                results['mean_test_score'][candidate],
+                results['std_test_score'][candidate]))
             print("Parameters: {0}".format(results['params'][candidate]))
             print("")
 
-'''import os
-Non funziona, cerca di risolvere
-os.environ['PATH'] += os.pathsep + 'C:\\Users\\Uno\\Desktop\\Esame computing\\SCcmep2021\\StarclassML'
-from StarclassML.Decisiontreeclassifier import report'''
-
-
-
 if __name__ == '__main__':
-    #df = pd.read_csv(r'C:\Users\feder\Downloads\archive\Stars.csv')
-    df = pd.read_csv('C:\\Users\\Uno\\Documents\\Uni\\Computing methods\\Esame\\Stars.csv')
+    PATH_ACTUAL = os.getcwd()
+    PATH = PATH_ACTUAL + "/data/Stars.csv"
+    df = pd.read_csv(PATH)
+
+    del df['L']
 
     ##Trasformiamo la target class in un valore categorico
-    stars_type = ['Red Dwarf','Brown Dwarf','White Dwarf','Main Sequence','Super Giants','Hyper Giants']
-    df['Type'] =  df['Type'].replace(df['Type'].unique(),stars_type)
+    stars_type = ['Red Dwarf', 'Brown Dwarf', 'White Dwarf',
+                  'Main Sequence', 'Super Giants', 'Hyper Giants']
+    df['Type'] = df['Type'].replace(df['Type'].unique(), stars_type)
 
     ##Trasformo alcune variabili usando il logaritmo in base 10
     df['R'] = np.log10(df['R'].values)
@@ -59,88 +49,32 @@ if __name__ == '__main__':
         df[col] = le.fit_transform(df[col])
 
 
-    ##Definisco il train set e il test set
+    ##Separo la target class dal dataset
     attributes = [col for col in df.columns if col != 'Type']
     X = df[attributes].values
     y = df['Type']
 
 
-    ##Creiamo l'ensemble di alberi e vediamo quale ci da la miglior performance
-    leaf_list = list(np.arange(1,100,2))
-    samples_list = list(np.arange(2,100,2))
+    ##Creiamo l'ensemble di alberi e settiamo gli iperparametri
+    leaf_list = list(np.arange(1, 100, 2))
+    samples_list = list(np.arange(2, 100, 2))
     param_list = {'max_depth': [None] + list(np.arange(2, 20)),
-              'min_samples_split': samples_list,
-              'min_samples_leaf': leaf_list,
-              'criterion': ['gini', 'entropy'],
-             }
-    clf = RandomForestClassifier(n_estimators=100, criterion='gini', max_depth=None, 
-                             min_samples_split=2, min_samples_leaf=1, class_weight=None)
-    random_search = RandomizedSearchCV(clf, param_distributions=param_list, n_iter=100, n_jobs= -1)
+                  'min_samples_split': samples_list,
+                  'min_samples_leaf': leaf_list,
+                  'criterion': ['gini', 'entropy']}
+    clf = RandomForestClassifier(n_estimators=400, criterion='gini', max_depth=None,
+                                 min_samples_split=2, min_samples_leaf=1, class_weight=None)
+    random_search = RandomizedSearchCV(clf, param_distributions=param_list,
+                                       n_iter=100, n_jobs=-1, cv=5,
+                                       scoring='accuracy')
     random_search.fit(X, y)
     report(random_search.cv_results_, n_top=3)
-
-
-
     clf = random_search.best_estimator_
+
     ##Vediamo quali sono gli attributi che più impattano nella classificazione
     for col, imp in zip(attributes, clf.feature_importances_):
         print(col, imp)
 
-    #crossvalidation
+    #crossvalidation, veduamo le performance
     scores = cross_val_score(clf, X, y, cv=5)
     print('Cross validation Accuracy: %0.4f (+/- %0.2f)' % (scores.mean(), scores.std() * 2))
-
-    ##Vediamo com'è fatta la ROC CURVE
-    '''lb = LabelBinarizer() #dobbiamo usare questo dal momento che abbiamo un problema a multilabel
-    lb.fit(y_test)
-    lb.classes_.tolist()    #Ho le classi in una lista
-    fpr = dict()
-    tpr = dict()
-    roc_auc = dict()
-    by_test = lb.transform(y_test)
-    by_pred = lb.transform(y_pred)
-    for i in range(6):
-        fpr[i], tpr[i], _ = roc_curve(by_test[:, i], by_pred[:, i])
-        roc_auc[i] = auc(fpr[i], tpr[i])    
-    roc_auc = roc_auc_score(by_test, by_pred, average=None)
-    plt.figure(figsize=(8, 5))
-    for i in range(6):
-        plt.plot(fpr[i], tpr[i], 
-                 label='%s ROC curve (area = %0.2f)' % (lb.classes_.tolist()[i], roc_auc[i]))
-
-        plt.plot([0, 1], [0, 1], 'k--')
-        plt.xlim([0.0, 1.0])
-        plt.ylim([0.0, 1.05])
-        plt.xlabel('False Positive Rate', fontsize=20)
-        plt.ylabel('True Positive Rate', fontsize=20) 
-        plt.tick_params(axis='both', which='major', labelsize=22)
-        plt.legend(loc="lower right", fontsize=14, frameon=False)
-        plt.show()'''
-
-    ##Analisi con pca, devo prima centrare i dati.
-    scaler = StandardScaler()
-    X = scaler.fit_transform(X)
-
-    pca = PCA(n_components=6)
-    pca.fit(X)
-    X_pca = pca.transform(X)      #Ci devo mettere xtrain o x?
-
-    ##Esploro lo spazio dei parametri del mio albero per capire quale è quello più ideale
-    param_list = {'max_depth': [None] + list(np.arange(2, 20)),
-              'min_samples_split': [2, 5, 10, 20, 30, 50, 100],
-              'min_samples_leaf': [1, 5, 10, 20, 30, 50, 100]
-              }
-    clf = RandomForestClassifier(criterion='entropy', max_depth=None, min_samples_split=2, min_samples_leaf=1)
-    #randomized search estrae valori casualmente dallo spazio dei parametri
-    random_search = RandomizedSearchCV(clf, param_distributions=param_list, n_iter=200, scoring = 'accuracy')
-    random_search.fit(X_pca, y)
-    report(random_search.cv_results_, n_top=3)
-
-    ##seleziono l'albero migliore e stampo il numero di nodi.
-    #clf = DecisionTreeClassifier(criterion='gini', max_depth=17, min_samples_split=5, min_samples_leaf=20)
-    clf = random_search.best_estimator_
-
-
-    #crossvalidation
-    scores = cross_val_score(clf, X_pca, y, cv=5)
-    print('Cross validation Accuracy: %0.4f (+/- %0.4f)' % (scores.mean(), scores.std() * 2))
