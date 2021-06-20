@@ -6,9 +6,25 @@
 Welcome to SCcmep2021's documentation!
 ======================================
 
+SCcmep2021 is a useful tool for star classification applications. It is based on the
+'Sklearn package <https://scikit-learn.org/stable/>'_ and you can find the dataset used as example at
+the following link <https://www.kaggle.com/brsdincer/star-type-classification>.
+The dataset should be composed of 7 attributes which are: Temperature, Luminosity, Radius, Absolute magnitude, Color, Spectral Class and Type,
+but it can work for dataset of any dimensions.
+
+
+
+Contents:
+---------
+
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
+
+    installation
+    trees_classifiers
+    knn_classifier
+    SVM_classifier
+    NN_classifier
 
 
 
