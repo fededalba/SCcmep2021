@@ -5,6 +5,7 @@ Created on Sat Jun 12 17:04:42 2021
 @author: feder
 """
 import os
+import sys
 import numpy as np
 import pandas as pd
 import pydotplus
@@ -14,28 +15,36 @@ from sklearn.model_selection import RandomizedSearchCV
 from sklearn import tree
 from sklearn.model_selection import cross_val_score
 from IPython.display import Image
+'''
+PATH_ACTUAL = os.getcwd()
+PATH_PARENT = os.path.abspath(os.path.join(PATH_ACTUAL, os.pardir))
+#sys.path.append(PATH_PARENT)'''
 
-
-def report(results, n_top=3):
-    '''Questa funzione mi rende gli iperparametri per cui ho ottenuto i migliori top 3 risultati '''
-    for i in range(1, n_top + 1):
-        candidates = np.flatnonzero(results['rank_test_score'] == i)
-        for candidate in candidates:
-            print("Model with rank: {0}".format(i))
-            print("Mean validation score: {0:.3f} (std: {1:.3f})".format(
-                results['mean_test_score'][candidate],
-                results['std_test_score'][candidate]))
-            print("Parameters: {0}".format(results['params'][candidate]))
-            print("")
+from StarclassML.report import report
 
 def Decisiontreeclf(dataset, param_list, target_class='Type', n_iter=100, scoring='accuracy'):
-    '''Questa funzione mi rende il classificatore decisiontree con i migliori parametri e le performance crossvalidate 
-    dataset deve essere un pandas.dataframe
-    param_list un dizionario con i parametri da voler esplorare:
-        max_depth : massima profondità dell'albero
-        min_samples_split : numero minimo di records richiesti per splittare un nodo interno
-        min_samples_leaf : numero minimo di records per definire un leaf node
-        criterion : Scelta della objective function'''
+    '''
+    This function creates the decision tree classifier with the hyperparameter already tuned.
+    The decision tree works that way:He select an attribute and build a node where data can
+    be split depending on an objective function (entropy, gini). So at each step(node) the
+    classifier make a decision. For more information, please visit:
+    https://scikit-learn.org/stable/modules/tree.html
+
+    Parameters
+    ----------
+    min_samples_split : integer
+        min number of samples for splitting
+    max_depth : integer
+        Depth of the tree
+    min_samples_leaf : integer
+        min number of samples to define a leaf
+    criterion : str
+        Criterion for splitting the nodes.
+    ----------   
+    
+    param_list should be a dictionary with the ranges of the parameters.
+    dataset should be a dataframe from pandas.
+    '''
 
     ##Separo la target class dal dataset
     attributes = [col for col in dataset.columns if col != target_class]
@@ -63,8 +72,8 @@ def Decisiontreeclf(dataset, param_list, target_class='Type', n_iter=100, scorin
 if __name__ == '__main__':
 
     PATH_ACTUAL = os.getcwd()
-    PATH = PATH_ACTUAL + "/data/Stars.csv"
-    df = pd.read_csv(PATH)
+    PATH_DATA = PATH_ACTUAL + "/data/Stars.csv"
+    df = pd.read_csv(PATH_DATA)
 
     ##Trasformiamo la target class in un valore categorico
     stars_type = ['Red Dwarf', 'Brown Dwarf', 'White Dwarf', 'Main Sequence',
