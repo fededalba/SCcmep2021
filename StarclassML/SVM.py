@@ -2,7 +2,7 @@
 """
 Created on Wed Jun  2 18:25:31 2021
 
-@author: Uno
+@author: Fede
 """
 
 import os
@@ -16,29 +16,28 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import GridSearchCV
 from sklearn.svm import SVC
 from sklearn.decomposition import PCA
-
-
-def report(results, n_top=3):
-    '''Questa funzione mi rende gli iperparametri per cui ho ottenuto i migliori top 3 risultati '''
-    for i in range(1, n_top + 1):
-        candidates = np.flatnonzero(results['rank_test_score'] == i)
-        for candidate in candidates:
-            print("Model with rank: {0}".format(i))
-            print("Mean validation score: {0:.3f} (std: {1:.3f})".format(
-                results['mean_test_score'][candidate],
-                results['std_test_score'][candidate]))
-            print("Parameters: {0}".format(results['params'][candidate]))
-            print("")
+from StarclassML.report import report
 
 
 def SVMclf(data, target_class, param_list):
-    '''Funzione che mi rende il classificatore svm con gli iperparametri tunati e le performance sul dataset.
-    data deve essere la nostra matrice di dati, obbligatorio usare lo standard scaler prima di usare la funzione
-    param_list deve contenere i parametri del support vector machine:
-        C : ci dice quanto vogliamo evitare missclassificazioni pur di avere margini più piccoli
-        gamma : si usa per svm non lineare, ci dice quanto un singolo training point influenza i punti vicini
-        kernel : possibili scelte tra linear, rbf e polinomiale
-    target_class deve essere un array con i labels.
+    '''
+    SVM is a classifier that create an hyperplane that divide our space in a way that each point that on each side i have different classification labels.
+    This function return the SVM with the hyperparameter tuned and the cross validated performance.
+    For more information, please visit:
+    https://scikit-learn.org/stable/modules/generated/sklearn.svm.SVC.html
+
+    Parameters
+    ----------
+    C : integer
+        it represent how many missclassification we would like to avoid.
+    kernel : str
+        The kernel that we re gonna use
+    gamma : integer
+        It tells us how much a point influence the closest point. Higher values it means that more points are influenced.
+    ----------
+
+    param_list should be a dictionary with the parameters range.
+    data should be a matrix with the normalized data and without the target class.
     '''
     ##Hyperparameter tuning
     clf = SVC(gamma='auto')

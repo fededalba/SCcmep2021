@@ -2,7 +2,7 @@
 """
 Created on Tue May 18 11:56:29 2021
 
-@author: Uno
+@author: Fede
 """
 
 import os
@@ -12,30 +12,32 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import RandomizedSearchCV
 from sklearn.model_selection import cross_val_score
-
-
-
-def report(results, n_top=3):
-    '''Questa funzione mi rende gli iperparametri per cui ho ottenuto i migliori top 3 risultati '''
-    for i in range(1, n_top + 1):
-        candidates = np.flatnonzero(results['rank_test_score'] == i)
-        for candidate in candidates:
-            print("Model with rank: {0}".format(i))
-            print("Mean validation score: {0:.3f} (std: {1:.3f})".format(
-                results['mean_test_score'][candidate],
-                results['std_test_score'][candidate]))
-            print("Parameters: {0}".format(results['params'][candidate]))
-            print("")
+from StarclassML.report import report
 
 
 def RandomForestclf(dataset, param_list, target_class='Type', n_estimators=400, scoring='accuracy'):
-    '''Questa funzione mi rende il classificatore randomforest con i migliori iperparametri e l'accuratezza media crossvalidata
-    dataset deve essere un pandas.dataframe
-    param_list un dizionario con i parametri da voler esplorare:
-        max_depth : massima profondità dell'albero
-        min_samples_split : numero minimo di records richiesti per splittare un nodo interno
-        min_samples_leaf : numero minimo di records per definire un leaf node
-        criterion : Scelta della objective function'''
+    '''
+    This function creates an ensamble of decision trees classifier and tune the hyperparameter thanks to randomsearchCV from sklearn.
+    For more information, please visit:
+    https://scikit-learn.org/stable/modules/tree.html
+
+    Parameters
+    ----------
+    min_samples_split : integer
+        min number of samples for splitting
+    max_depth : integer
+        Depth of the tree
+    min_samples_leaf : integer
+        min number of samples to define a leaf
+    criterion : str
+        Criterion for splitting the nodes.
+    n_estimators : integer
+        number of trees that partecipate to the classification problem
+    ----------   
+    
+    param_list should be a dictionary with the ranges of the parameters.
+    dataset should be a dataframe from pandas.
+    '''
 
     ##Separo la target class dal dataset
     attributes = [col for col in df.columns if col != target_class]
