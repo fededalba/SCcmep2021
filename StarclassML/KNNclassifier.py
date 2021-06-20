@@ -2,7 +2,7 @@
 """
 Created on Wed May 19 11:18:14 2021
 
-@author: Uno
+@author: Fede
 """
 
 import os
@@ -18,25 +18,26 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.model_selection import RandomizedSearchCV
 from sklearn.model_selection import cross_val_score
 from sklearn.decomposition import PCA
+from StarclassML.report import report
 
-
-def report(results, n_top=3):
-    '''Questa funzione mi rende gli iperparametri per cui ho ottenuto i migliori top 3 risultati '''
-    for i in range(1, n_top + 1):
-        candidates = np.flatnonzero(results['rank_test_score'] == i)
-        for candidate in candidates:
-            print("Model with rank: {0}".format(i))
-            print("Mean validation score: {0:.3f} (std: {1:.3f})".format(
-                results['mean_test_score'][candidate],
-                results['std_test_score'][candidate]))
-            print("Parameters: {0}".format(results['params'][candidate]))
-            print("")
 
 def KNNclf(data, target_class, param_list):
-    '''Funzione che mi rende il classificatore KNN con gli iperparametri settati e le performance.
-    data deve essere la mia matrice di dati senza la target class. I dati devono essere normalizzati.
-    param_list deve contenere il parametro k_neighbour, cioè il numero di vicini da considerare per la classificazione
-    target_class deve essere un array con i labels.'''
+    '''
+    The KNN classifier classifies the test point based on their distance to the closest k (k is a parameter) points.
+    This function contain also the randomsearchCV for which we can find the best hyperparameter for the classifier.
+    Then, it print out the performance of the classifier obtained with crossvalidation.
+    For more information, please visit:
+    https://scikit-learn.org/stable/modules/generated/sklearn.neighbors.KNeighborsClassifier.html
+
+    Parameters
+    ----------
+    k : integer
+        number of closest points to consider to perform the classification
+    ----------
+
+    data has to be the matrix containing the normalized data except the target class.
+    Higly suggested perform a data reduction before using knn(ideal dimension is 2 or 3)
+    '''
 
     ##hyperparameter tuning
     clf = KNeighborsClassifier(n_neighbors=1, weights='distance')

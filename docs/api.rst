@@ -1,7 +1,7 @@
 API documentation
 =================
 
-Dataunderstanding
+SCcmep2021
 ----
-.. automodule:: Dataunderstanding
+.. automodule:: SCcmep2021
    :members:
