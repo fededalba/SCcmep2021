@@ -27,6 +27,34 @@ def report(results, n_top=3):
             print("Parameters: {0}".format(results['params'][candidate]))
             print("")
 
+
+def RandomForestclf(dataset, param_list, target_class='Type', n_estimators=400, scoring='accuracy'):
+    '''Questa funzione mi rende il classificatore randomforest con i migliori iperparametri e l'accuratezza media crossvalidata
+    dataset deve essere un pandas.dataframe
+    param_list un dizionario con i parametri da voler esplorare:
+        max_depth : massima profondità dell'albero
+        min_samples_split : numero minimo di records richiesti per splittare un nodo interno
+        min_samples_leaf : numero minimo di records per definire un leaf node
+        criterion : Scelta della objective function'''
+
+    ##Separo la target class dal dataset
+    attributes = [col for col in df.columns if col != target_class]
+    X = dataset[attributes].values
+    y = dataset[target_class]
+
+    clf = RandomForestClassifier(n_estimators=400, criterion='gini', max_depth=None,
+                                 min_samples_split=2, min_samples_leaf=1, class_weight=None)
+    random_search = RandomizedSearchCV(clf, param_distributions=param_list,
+                                       n_iter=100, n_jobs=-1, cv=5,
+                                       scoring='accuracy')
+    random_search.fit(X, y)
+    report(random_search.cv_results_, n_top=3)
+    clf = random_search.best_estimator_
+
+    scores = cross_val_score(clf, X, y, cv=5)
+    return(clf, scores)
+
+
 if __name__ == '__main__':
     PATH_ACTUAL = os.getcwd()
     PATH = PATH_ACTUAL + "/data/Stars.csv"
@@ -49,12 +77,6 @@ if __name__ == '__main__':
         df[col] = le.fit_transform(df[col])
 
 
-    ##Separo la target class dal dataset
-    attributes = [col for col in df.columns if col != 'Type']
-    X = df[attributes].values
-    y = df['Type']
-
-
     ##Creiamo l'ensemble di alberi e settiamo gli iperparametri
     leaf_list = list(np.arange(1, 100, 2))
     samples_list = list(np.arange(2, 100, 2))
@@ -62,19 +84,13 @@ if __name__ == '__main__':
                   'min_samples_split': samples_list,
                   'min_samples_leaf': leaf_list,
                   'criterion': ['gini', 'entropy']}
-    clf = RandomForestClassifier(n_estimators=400, criterion='gini', max_depth=None,
-                                 min_samples_split=2, min_samples_leaf=1, class_weight=None)
-    random_search = RandomizedSearchCV(clf, param_distributions=param_list,
-                                       n_iter=100, n_jobs=-1, cv=5,
-                                       scoring='accuracy')
-    random_search.fit(X, y)
-    report(random_search.cv_results_, n_top=3)
-    clf = random_search.best_estimator_
+    clf = RandomForestclf(df, param_list=param_list, target_class='Type', n_estimators=400, scoring='accuracy')
 
     ##Vediamo quali sono gli attributi che più impattano nella classificazione
-    for col, imp in zip(attributes, clf.feature_importances_):
+    attributes = [col for col in df.columns if col != 'Type']
+    for col, imp in zip(attributes, clf[0].feature_importances_):
         print(col, imp)
 
     #crossvalidation, veduamo le performance
-    scores = cross_val_score(clf, X, y, cv=5)
+    scores = clf[1]
     print('Cross validation Accuracy: %0.4f (+/- %0.2f)' % (scores.mean(), scores.std() * 2))

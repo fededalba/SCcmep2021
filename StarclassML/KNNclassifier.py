@@ -32,7 +32,21 @@ def report(results, n_top=3):
             print("Parameters: {0}".format(results['params'][candidate]))
             print("")
 
+def KNNclf(data, target_class, param_list):
+    '''Funzione che mi rende il classificatore KNN con gli iperparametri settati e le performance.
+    data deve essere la mia matrice di dati senza la target class. I dati devono essere normalizzati.
+    param_list deve contenere il parametro k_neighbour, cioè il numero di vicini da considerare per la classificazione
+    target_class deve essere un array con i labels.'''
 
+    ##hyperparameter tuning
+    clf = KNeighborsClassifier(n_neighbors=1, weights='distance')
+    random_search = RandomizedSearchCV(clf, param_distributions=param_list, n_iter=50)
+    random_search.fit(X, y)
+    report(random_search.cv_results_, n_top=3)
+
+    clf = random_search.best_estimator_
+    scores = cross_val_score(clf, X, y, cv=5)
+    return(clf, scores)
 
 if __name__ == '__main__':
     PATH_ACTUAL = os.getcwd()
@@ -59,8 +73,6 @@ if __name__ == '__main__':
 
     ##Definiamo il classificatore prima del ciclo for
     param_list = {'n_neighbors': np.arange(1, 100)}
-    clf = KNeighborsClassifier(n_neighbors=1, weights='distance')
-    random_search = RandomizedSearchCV(clf, param_distributions=param_list, n_iter=50)
     CV_scores = []
     CV_std = []
     labels = ['df2', 'df2R', 'df3', 'df3R', 'df2pca', 'df3pca']
@@ -68,14 +80,10 @@ if __name__ == '__main__':
         scaler = MinMaxScaler()
         X = scaler.fit_transform(dataset.values)
 
-        ##hyperparameter tuning
-        random_search.fit(X, y)
-        report(random_search.cv_results_, n_top=3)
+        clf = KNNclf(X, y, param_list=param_list)
 
-        clf = random_search.best_estimator_
-
-        ##Vediamo le performance usando la crossvalidation
-        scores = cross_val_score(clf, X, y, cv=5)
+        ##Vediamo le performance
+        scores = clf[1]
         print('Cross validation Accuracy: %0.4f (+/- %0.4f)' % (scores.mean(), scores.std() * 2))
         CV_scores.append(scores.mean())
         CV_std.append(scores.std())
@@ -92,14 +100,10 @@ if __name__ == '__main__':
         pca.fit(X)
         X_pca = pca.transform(X)
 
-        ##hyperparameter tuning
-        random_search.fit(X_pca, y)
-        report(random_search.cv_results_, n_top=3)
+        clf = KNNclf(X_pca, y, param_list=param_list)
 
-        clf = random_search.best_estimator_
-
-        ##Vediamo le performance usando la crossvalidation
-        scores = cross_val_score(clf, X, y, cv=3)
+        ##Vediamo le performance
+        scores = clf[1]
         print('Cross validation Accuracy: %0.4f (+/- %0.4f)' % (scores.mean(), scores.std() * 2))
         CV_scores.append(scores.mean())
         CV_std.append(scores.std())

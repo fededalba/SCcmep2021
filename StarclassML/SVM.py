@@ -30,6 +30,30 @@ def report(results, n_top=3):
             print("Parameters: {0}".format(results['params'][candidate]))
             print("")
 
+
+def SVMclf(data, target_class, param_list):
+    '''Funzione che mi rende il classificatore svm con gli iperparametri tunati e le performance sul dataset.
+    data deve essere la nostra matrice di dati, obbligatorio usare lo standard scaler prima di usare la funzione
+    param_list deve contenere i parametri del support vector machine:
+        C : ci dice quanto vogliamo evitare missclassificazioni pur di avere margini più piccoli
+        gamma : si usa per svm non lineare, ci dice quanto un singolo training point influenza i punti vicini
+        kernel : possibili scelte tra linear, rbf e polinomiale
+    target_class deve essere un array con i labels.
+    '''
+    ##Hyperparameter tuning
+    clf = SVC(gamma='auto')
+    grid_search = GridSearchCV(clf, param_grid=param_list,
+                               scoring='accuracy', n_jobs=-1)
+    grid_search.fit(X, y)
+    report(grid_search.cv_results_, n_top=3)
+    clf = grid_search.best_estimator_
+
+    scores = cross_val_score(clf, X, y, cv=5)
+    return(clf, scores)
+
+
+
+
 if __name__ == '__main__':
     PATH_ACTUAL = os.getcwd()
     PATH = PATH_ACTUAL + "/data/Stars.csv"
@@ -55,14 +79,9 @@ if __name__ == '__main__':
 
     dataarray = [df2, df3, df4, df6, df2R, df3R, df4R]
     y = df['Type']
-
-    clf = SVC(gamma='auto')
     param_list = {'C': [0.001, 0.01, 0.1, 1, 10, 100],
                   'kernel': ['linear', 'rbf', 'poly'],
                   'gamma': ['auto', 0.001, 0.01, 0.1, 1]}
-    grid_search = GridSearchCV(clf, param_grid=param_list,
-                               scoring='accuracy', n_jobs=-1)
-
     CV_scores = []
     CV_std = []
     labels = ['dim2', 'dim3', 'dim4', 'dim5']
@@ -73,13 +92,10 @@ if __name__ == '__main__':
         scaler = StandardScaler()
         X = scaler.fit_transform(dataset.values)
 
-        ##Hyperparameter tuning
-        grid_search.fit(X, y)
-        report(grid_search.cv_results_, n_top=3)
-        clf = grid_search.best_estimator_
+        clf = SVMclf(X, y, param_list=param_list)
 
         #crossvalidation
-        scores = cross_val_score(clf, X, y, cv=5)
+        scores = clf[1]
         print('Cross validation Accuracy: %0.4f (+/- %0.4f)' % (scores.mean(), scores.std() * 2))
         CV_scores.append(scores.mean())
         CV_std.append(scores.std())
@@ -96,15 +112,10 @@ if __name__ == '__main__':
         pca = PCA(n_components=i)
         pca.fit(X)
         X_pca = pca.transform(X)
-
-        ##hyperparameter tuning
-        grid_search.fit(X_pca, y)
-        print(3)
-        report(grid_search.cv_results_, n_top=3)
-        clf = grid_search.best_estimator_
+        clf = SVMclf(X_pca, y, param_list=param_list)
 
         ##Vediamo le performance usando la crossvalidation
-        scores = cross_val_score(clf, X, y, cv=5)
+        scores = clf[1]
         print('Cross validation Accuracy: %0.4f (+/- %0.4f)' % (scores.mean(), scores.std() * 2))
         CV_scores.append(scores.mean())
         CV_std.append(scores.std())
