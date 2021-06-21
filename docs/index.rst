@@ -12,18 +12,15 @@ the following link <https://www.kaggle.com/brsdincer/star-type-classification>.
 The dataset should be composed of 7 attributes which are: Temperature, Luminosity, Radius, Absolute magnitude, Color, Spectral Class and Type.
 
 
-
-Contents:
----------
-
 .. toctree::
    :maxdepth: 2
+   :caption: Contents:
 
-    installation
-    trees_classifiers
-    knn_classifier
-    SVM_classifier
-    NN_classifier
+    modules/installation
+    modules/trees_classifiers
+    modules/knn_classifier
+    modules/SVM_classifier
+    modules/NN_classifier
 
 
 
