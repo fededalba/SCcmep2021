@@ -13,8 +13,8 @@ The dataset should be composed of 7 attributes which are: Temperature, Luminosit
 
 
 .. toctree::
-  :maxdepth: 4
-  :caption: Contents:
+   :maxdepth: 4
+   :caption: Contents:
 
    source/installation
    source/trees_classifiers
