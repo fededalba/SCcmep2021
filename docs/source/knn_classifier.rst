@@ -1,4 +1,6 @@
-StarclassML.KNNclassifier package
+.. _knn_classifier:
+
+StarclassML.KNNclassifier
 =========================
 
 
