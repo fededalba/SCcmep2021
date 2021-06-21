@@ -13,14 +13,14 @@ The dataset should be composed of 7 attributes which are: Temperature, Luminosit
 
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Contents:
+  :maxdepth: 4
+  :caption: Contents:
 
-    modules/installation
-    modules/trees_classifiers
-    modules/knn_classifier
-    modules/SVM_classifier
-    modules/NN_classifier
+   source/installation
+   source/trees_classifiers
+   source/knn_classifier
+   source/SVM_classifier
+   source/NN_classifier
 
 
 
