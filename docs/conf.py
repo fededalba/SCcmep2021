@@ -21,6 +21,10 @@ package_root = os.path.abspath('..')
 sys.path.insert(0, package_root)
 sys.path.insert(0, os.path.join(package_root, package_name))
 
+PATH_ACTUAL = os.getcwd()
+PATH = PATH_ACTUAL + '\\source'
+sys.path.insert(0,PATH)
+
 numpydoc_show_class_members = False
 
 # -- Project information -----------------------------------------------------
