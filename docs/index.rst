@@ -17,10 +17,11 @@ The dataset should be composed of 7 attributes which are: Temperature, Luminosit
    :caption: Contents:
 
    source/installation
-   source/trees_classifiers
-   source/knn_classifier
-   source/SVM_classifier
-   source/NN_classifier
+   source/StarclassML.Decisiontreeclassifier
+   source/StarclassML.Randomforestclassifier
+   source/StarclassML.KNNclassifier
+   source/StarclassML.NNclassifier
+   source/StarclassML.SVM
 
 
 
