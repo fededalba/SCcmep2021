@@ -37,17 +37,26 @@ def SVMclf(data, target_class, param_list):
     ----------
 
     param_list should be a dictionary with the parameters range.
-    data should be a matrix with the normalized data and without the target class.
+    data should be a matrix(numpy.ndarray) with the normalized data and without the target class.
     '''
+    #controllo che i dati siano un array n dimensionale di numpy.
+    assert type(data) == np.ndarray, 'Your data should be a n dimensional numpy array'
+
+    #controllo che la target class sia un array di numpy.
+    assert type(target_class) == np.ndarray, 'Your targetclass should be a n dimensional numpy array'
+
+    #controllo che param_list sia un dizionario
+    assert type(param_list) == dict, 'Your param_list should be a dictionary. For more info about parameters, please check the documentation'
+
     ##Hyperparameter tuning
     clf = SVC(gamma='auto')
     grid_search = GridSearchCV(clf, param_grid=param_list,
                                scoring='accuracy', n_jobs=-1)
-    grid_search.fit(X, y)
+    grid_search.fit(data, target_class)
     report(grid_search.cv_results_, n_top=3)
     clf = grid_search.best_estimator_
 
-    scores = cross_val_score(clf, X, y, cv=5)
+    scores = cross_val_score(clf, data, target_class, cv=5)
     return(clf, scores)
 
 
@@ -77,7 +86,7 @@ if __name__ == '__main__':
                            'Spectral_Class'])
 
     dataarray = [df2, df3, df4, df6, df2R, df3R, df4R]
-    y = df['Type']
+    y = df['Type'].values
     param_list = {'C': [0.001, 0.01, 0.1, 1, 10, 100],
                   'kernel': ['linear', 'rbf', 'poly'],
                   'gamma': ['auto', 0.001, 0.01, 0.1, 1]}

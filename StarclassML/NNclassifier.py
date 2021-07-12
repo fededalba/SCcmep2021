@@ -110,6 +110,7 @@ if __name__ == '__main__':
 
         #Definisco i modelli e faccio partire il training.
         model1 = onelayer_model()
+        print(type(model1))
         history1 = model1.fit(X_train, y_train, validation_data=(X_val, y_val), epochs=1000, batch_size=5, callbacks=[es]).history
 
         model2 = twolayers_model()

@@ -45,6 +45,12 @@ def Decisiontreeclf(dataset, param_list, target_class='Type', n_iter=100, scorin
     param_list should be a dictionary with the ranges of the parameters.
     dataset should be a dataframe from pandas.
     '''
+    #controllo che siano passati i giusti tipi di variabili.
+    assert type(dataset)==pd.core.frame.DataFrame
+
+    assert type(param_list)==dict
+
+    assert(target_class)==str
 
     ##Separo la target class dal dataset
     attributes = [col for col in dataset.columns if col != target_class]

@@ -38,6 +38,12 @@ def RandomForestclf(dataset, param_list, target_class='Type', n_estimators=400, 
     param_list should be a dictionary with the ranges of the parameters.
     dataset should be a dataframe from pandas.
     '''
+    #controllo che siano passati i giusti tipi di variabili.
+    assert type(dataset)==pd.core.frame.DataFrame
+
+    assert type(param_list)==dict
+
+    assert(target_class)==str
 
     ##Separo la target class dal dataset
     attributes = [col for col in df.columns if col != target_class]

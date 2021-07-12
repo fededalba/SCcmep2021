@@ -38,15 +38,23 @@ def KNNclf(data, target_class, param_list):
     data has to be the matrix containing the normalized data except the target class.
     Higly suggested perform a data reduction before using knn(ideal dimension is 2 or 3)
     '''
+    #controllo che i dati siano un array n dimensionale di numpy.
+    assert type(data) == np.ndarray, 'Your data should be a n dimensional numpy array'
+
+    #controllo che la target class sia un array di numpy.
+    assert type(target_class) == np.ndarray, 'Your targetclass should be a n dimensional numpy array'
+
+    #controllo che param_list sia un dizionario
+    assert type(param_list) == dict, 'Your param_list should be a dictionary. For more info about parameters, please check the documentation'
 
     ##hyperparameter tuning
     clf = KNeighborsClassifier(n_neighbors=1, weights='distance')
     random_search = RandomizedSearchCV(clf, param_distributions=param_list, n_iter=50)
-    random_search.fit(X, y)
+    random_search.fit(data, target_class)
     report(random_search.cv_results_, n_top=3)
 
     clf = random_search.best_estimator_
-    scores = cross_val_score(clf, X, y, cv=5)
+    scores = cross_val_score(clf, data, target_class, cv=5)
     return(clf, scores)
 
 if __name__ == '__main__':
