@@ -5,6 +5,7 @@ matplotlib==3.3.4
 scipy==1.6.2
 seaborn==0.11.1
 pydotplus==2.0.2
+IPython==7.12.0
 tensorflow
 sklearn
 sphinx_rtd_theme
