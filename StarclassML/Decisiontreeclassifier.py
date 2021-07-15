@@ -5,7 +5,6 @@ Created on Sat Jun 12 17:04:42 2021
 @author: feder
 """
 import os
-import sys
 import numpy as np
 import pandas as pd
 import pydotplus
@@ -15,20 +14,17 @@ from sklearn.model_selection import RandomizedSearchCV
 from sklearn import tree
 from sklearn.model_selection import cross_val_score
 from IPython.display import Image
-'''
-PATH_ACTUAL = os.getcwd()
-PATH_PARENT = os.path.abspath(os.path.join(PATH_ACTUAL, os.pardir))
-#sys.path.append(PATH_PARENT)'''
+from sklearn.model_selection import KFold
 
-from StarclassML.report import report
-
-def Decisiontreeclf(dataset, param_list, target_class='Type', n_iter=100, scoring='accuracy'):
+def Decisiontreeclf(dataset, param_list, target_class='Type', n_iter=100):
     '''
     This function creates the decision tree classifier with the hyperparameter already tuned.
     The decision tree works that way:He select an attribute and build a node where data can
     be split depending on an objective function (entropy, gini). So at each step(node) the
     classifier make a decision. For more information, please visit:
     https://scikit-learn.org/stable/modules/tree.html
+    param_list should be a dictionary with the ranges of the parameters.
+    dataset should be a dataframe from pandas.
 
     Parameters
     ----------
@@ -41,38 +37,34 @@ def Decisiontreeclf(dataset, param_list, target_class='Type', n_iter=100, scorin
     criterion : str
         Criterion for splitting the nodes.
     ----------   
-    
-    param_list should be a dictionary with the ranges of the parameters.
-    dataset should be a dataframe from pandas.
+
     '''
     #controllo che siano passati i giusti tipi di variabili.
     assert type(dataset)==pd.core.frame.DataFrame, 'Your dataset should be a pandas dataframe'
 
     assert type(param_list)==dict, 'Your param_list should be a dictionary. For more info about parameters, please check the documentation'
 
-    assert(target_class)==str, 'Your target_class should be a str with your target class name'
+    assert type(target_class)==str, 'Your target_class should be a str with your target class name'
 
     ##Separo la target class dal dataset
-    attributes = [col for col in dataset.columns if col != target_class]
+    attributes = [col for col in df.columns if col != target_class]
     X = dataset[attributes].values
     y = dataset[target_class]
 
-    ##hyperparameter tuning
-    clf = DecisionTreeClassifier(
-        criterion='gini', max_depth=None, min_samples_split=2,
-        min_samples_leaf=1)
-    #randomized search estrae valori casualmente dallo spazio dei parametri
+    ##Adesso trovo migliori iperparametri e performance con la nested cross-validation
+    #definisco la crossvalidation interna
+    cv_inner = KFold(n_splits=3, shuffle=True, random_state=42)
+    #definisco il modello
+    clf = DecisionTreeClassifier(criterion='gini', max_depth=None,
+                                 min_samples_split=2, min_samples_leaf=1)
     random_search = RandomizedSearchCV(clf, param_distributions=param_list,
-                                       n_iter=200, scoring='accuracy')
-    random_search.fit(X, y)
-    report(random_search.cv_results_, n_top=3)
-
-    ##seleziono l'albero migliore e stampo il numero di nodi.
-    clf = random_search.best_estimator_
-
-    #crossvalidation
-    scores = cross_val_score(clf, X, y, cv=5)
-    return(clf, scores)
+                                       n_iter=n_iter, n_jobs=-1, cv=cv_inner,
+                                       scoring='accuracy')
+    #definisco la crossvalidation esterna
+    cv_outer = KFold(n_splits=10, shuffle=True, random_state=42)
+    #faccio la nested crossvalidation
+    scores = cross_val_score(random_search, X, y, scoring='accuracy', cv=cv_outer, n_jobs=-1)
+    return scores
 
 
 if __name__ == '__main__':
@@ -104,7 +96,7 @@ if __name__ == '__main__':
                   'min_samples_leaf': [1, 5, 10, 20, 30, 50, 100],
                   'criterion' : ['gini', 'entropy']}
 
-    clf = Decisiontreeclf(df, param_list=param_list, target_class='Type', n_iter=100, scoring='accuracy')
+    scores = Decisiontreeclf(df, param_list=param_list, target_class='Type', n_iter=100)
 
     ''''##Stampiamo l'albero
     os.environ['PATH'] += os.pathsep + 'C:\\Users\\Uno\\anaconda3\\Library\\bin\\graphviz'
@@ -116,7 +108,5 @@ if __name__ == '__main__':
     graph = pydotplus.graph_from_dot_data(dot_data)
     Image(graph.create_png())'''
 
-
-    #crossvalidation
-    scores = clf[1]
-    print('Cross validation Accuracy: %0.4f (+/- %0.2f)' % (scores.mean(), scores.std() * 2))
+    #stampiamo i risultati
+    print('Nested Cross validation Accuracy: %0.4f (+/- %0.2f)' % (scores.mean(), scores.std() * 2))

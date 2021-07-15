@@ -18,7 +18,7 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.model_selection import RandomizedSearchCV
 from sklearn.model_selection import cross_val_score
 from sklearn.decomposition import PCA
-from StarclassML.report import report
+from sklearn.model_selection import KFold
 
 
 def KNNclf(data, target_class, param_list):
@@ -28,15 +28,17 @@ def KNNclf(data, target_class, param_list):
     Then, it print out the performance of the classifier obtained with crossvalidation.
     For more information, please visit:
     https://scikit-learn.org/stable/modules/generated/sklearn.neighbors.KNeighborsClassifier.html
+    data has to be the matrix containing the normalized data except the target class.
+    Higly suggested perform a data reduction before using knn(ideal dimension is 2 or 3)
 
     Parameters
     ----------
     k : integer
         number of closest points to consider to perform the classification
+    weights : str
+        it tells us if we are weighting or not distances
     ----------
 
-    data has to be the matrix containing the normalized data except the target class.
-    Higly suggested perform a data reduction before using knn(ideal dimension is 2 or 3)
     '''
     #controllo che i dati siano un array n dimensionale di numpy.
     assert type(data) == np.ndarray, 'Your data should be a n dimensional numpy array'
@@ -47,15 +49,20 @@ def KNNclf(data, target_class, param_list):
     #controllo che param_list sia un dizionario
     assert type(param_list) == dict, 'Your param_list should be a dictionary. For more info about parameters, please check the documentation'
 
-    ##hyperparameter tuning
-    clf = KNeighborsClassifier(n_neighbors=1, weights='distance')
-    random_search = RandomizedSearchCV(clf, param_distributions=param_list, n_iter=50)
-    random_search.fit(data, target_class)
-    report(random_search.cv_results_, n_top=3)
+    ##Adesso trovo migliori iperparametri e performance con la nested cross-validation
+    #definisco la crossvalidation interna
+    cv_inner = KFold(n_splits=3, shuffle=True, random_state=42)
+    #definisco il modello
+    clf = KNeighborsClassifier(n_neighbors=1)
+    random_search = RandomizedSearchCV(clf, param_distributions=param_list,
+                                       n_iter=50, n_jobs=-1, cv=cv_inner,
+                                       scoring='accuracy')
+    #definisco la crossvalidation esterna
+    cv_outer = KFold(n_splits=10, shuffle=True, random_state=42)
+    #faccio la nested crossvalidation
+    scores = cross_val_score(random_search, data, target_class, scoring='accuracy', cv=cv_outer, n_jobs=-1)
+    return scores
 
-    clf = random_search.best_estimator_
-    scores = cross_val_score(clf, data, target_class, cv=5)
-    return(clf, scores)
 
 if __name__ == '__main__':
     PATH_ACTUAL = os.getcwd()
@@ -81,19 +88,17 @@ if __name__ == '__main__':
     dataarray = [df2, df2R, df3, df3R]
 
     ##Definiamo il classificatore prima del ciclo for
-    param_list = {'n_neighbors': np.arange(1, 100)}
+    param_list = {'n_neighbors': np.arange(1, 100), 'weights':['distance', 'uniform']}
     CV_scores = []
     CV_std = []
     labels = ['df2', 'df2R', 'df3', 'df3R', 'df2pca', 'df3pca']
     for dataset in dataarray:
         scaler = MinMaxScaler()
         X = scaler.fit_transform(dataset.values)
+        #nested cross validation, mi rende un array
+        scores = KNNclf(X, y, param_list=param_list)
 
-        clf = KNNclf(X, y, param_list=param_list)
-
-        ##Vediamo le performance
-        scores = clf[1]
-        print('Cross validation Accuracy: %0.4f (+/- %0.4f)' % (scores.mean(), scores.std() * 2))
+        print('Nested Cross validation Accuracy: %0.4f (+/- %0.4f)' % (scores.mean(), scores.std() * 2))
         CV_scores.append(scores.mean())
         CV_std.append(scores.std())
 
@@ -109,11 +114,9 @@ if __name__ == '__main__':
         pca.fit(X)
         X_pca = pca.transform(X)
 
-        clf = KNNclf(X_pca, y, param_list=param_list)
+        scores = KNNclf(X_pca, y, param_list=param_list)
 
-        ##Vediamo le performance
-        scores = clf[1]
-        print('Cross validation Accuracy: %0.4f (+/- %0.4f)' % (scores.mean(), scores.std() * 2))
+        print('Nested Cross validation Accuracy: %0.4f (+/- %0.4f)' % (scores.mean(), scores.std() * 2))
         CV_scores.append(scores.mean())
         CV_std.append(scores.std())
 

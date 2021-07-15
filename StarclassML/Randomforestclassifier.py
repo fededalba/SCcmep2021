@@ -12,14 +12,16 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import RandomizedSearchCV
 from sklearn.model_selection import cross_val_score
-from StarclassML.report import report
+from sklearn.model_selection import KFold
 
 
-def RandomForestclf(dataset, param_list, target_class='Type', n_estimators=400, scoring='accuracy'):
+def RandomForestclf(dataset, param_list, target_class='Type', n_estimators=400):
     '''
     This function creates an ensamble of decision trees classifier and tune the hyperparameter thanks to randomsearchCV from sklearn.
     For more information, please visit:
     https://scikit-learn.org/stable/modules/tree.html
+    param_list should be a dictionary with the ranges of the parameters.
+    dataset should be a dataframe from pandas.
 
     Parameters
     ----------
@@ -34,33 +36,34 @@ def RandomForestclf(dataset, param_list, target_class='Type', n_estimators=400, 
     n_estimators : integer
         number of trees that partecipate to the classification problem
     ----------   
-    
-    param_list should be a dictionary with the ranges of the parameters.
-    dataset should be a dataframe from pandas.
+
     '''
     #controllo che siano passati i giusti tipi di variabili.
     assert type(dataset)==pd.core.frame.DataFrame, 'Your dataset should be a pandas dataframe'
 
     assert type(param_list)==dict, 'Your param_list should be a dictionary. For more info about parameters, please check the documentation'
 
-    assert(target_class)==str, 'Your target_class should be a str with your target class name'
+    assert type(target_class)==str, 'Your target_class should be a str with your target class name'
 
     ##Separo la target class dal dataset
     attributes = [col for col in df.columns if col != target_class]
     X = dataset[attributes].values
     y = dataset[target_class]
 
-    clf = RandomForestClassifier(n_estimators=400, criterion='gini', max_depth=None,
+    ##Adesso trovo migliori iperparametri e performance con la nested cross-validation
+    #definisco la crossvalidation interna
+    cv_inner = KFold(n_splits=3, shuffle=True, random_state=42)
+    #definisco il modello
+    clf = RandomForestClassifier(n_estimators=n_estimators, criterion='gini', max_depth=None,
                                  min_samples_split=2, min_samples_leaf=1, class_weight=None)
     random_search = RandomizedSearchCV(clf, param_distributions=param_list,
-                                       n_iter=100, n_jobs=-1, cv=5,
+                                       n_iter=100, n_jobs=-1, cv=cv_inner,
                                        scoring='accuracy')
-    random_search.fit(X, y)
-    report(random_search.cv_results_, n_top=3)
-    clf = random_search.best_estimator_
-
-    scores = cross_val_score(clf, X, y, cv=5)
-    return(clf, scores)
+    #definisco la crossvalidation esterna
+    cv_outer = KFold(n_splits=10, shuffle=True, random_state=42)
+    #faccio la nested crossvalidation
+    scores = cross_val_score(random_search, X, y, scoring='accuracy', cv=cv_outer, n_jobs=-1)
+    return scores
 
 
 if __name__ == '__main__':
@@ -85,20 +88,19 @@ if __name__ == '__main__':
         df[col] = le.fit_transform(df[col])
 
 
-    ##Creiamo l'ensemble di alberi e settiamo gli iperparametri
+    ##Creiamo l'ensemble di alberi e eseguiamo la nested cross validation
     leaf_list = list(np.arange(1, 100, 2))
     samples_list = list(np.arange(2, 100, 2))
     param_list = {'max_depth': [None] + list(np.arange(2, 20)),
                   'min_samples_split': samples_list,
                   'min_samples_leaf': leaf_list,
                   'criterion': ['gini', 'entropy']}
-    clf = RandomForestclf(df, param_list=param_list, target_class='Type', n_estimators=400, scoring='accuracy')
+    scores = RandomForestclf(df, param_list=param_list, target_class='Type', n_estimators=100)
 
     ##Vediamo quali sono gli attributi che più impattano nella classificazione
-    attributes = [col for col in df.columns if col != 'Type']
+    '''attributes = [col for col in df.columns if col != 'Type']
     for col, imp in zip(attributes, clf[0].feature_importances_):
-        print(col, imp)
+        print(col, imp)'''
 
-    #crossvalidation, veduamo le performance
-    scores = clf[1]
+    #nested crossvalidation, veduamo le performance
     print('Cross validation Accuracy: %0.4f (+/- %0.2f)' % (scores.mean(), scores.std() * 2))
